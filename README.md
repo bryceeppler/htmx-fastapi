@@ -6,4 +6,13 @@ A simple demo program to explore SSR with FastAPI and htmx.
 
 `pip install "uvicorn[standard]"`
 
-# htmx-fastapi
+## Startup
+```
+# Start a watcher
+./tailwindcss -i input.css -o output.css --watch
+
+# Compile and minify your CSS for production
+./tailwindcss -i input.css -o output.css --minify
+```
+## TODO
+[ ] integrate database with sqlAlchemy or raw sql?
