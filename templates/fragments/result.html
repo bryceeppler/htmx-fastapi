@@ -1,47 +1,20 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-    <div class="rounded-lg border bg-card text-card-foreground shadow-sm" data-v0-t="card">
-      <div class="p-4">
-        <img
-          src="/placeholder.svg"
-          alt="Card Image"
-          width="150"
-          height="200"
-          class="mb-4"
-          style="aspect-ratio: 150 / 200; object-fit: cover;"
-        />
-        <h3 class="font-semibold text-lg mb-2">Card Name</h3>
-        <p class="text-sm text-zinc-600 dark:text-zinc-400">Series: Series Name</p>
-        <p class="text-sm text-zinc-600 dark:text-zinc-400">Year: 2023</p>
+    {% for card in cards %}
+      <div class="rounded-lg border bg-card text-card-foreground shadow-sm" data-v0-t="card">
+        <div class="p-4">
+          <img
+            src={{card.image}}
+            alt="card image"
+            width="150"
+            height="200"
+            class="mb-4"
+            style="aspect-ratio: 150 / 200; object-fit: cover;"
+          />
+          <h3 class="font-semibold text-lg mb-2">{{ card.name }}</h3>
+          <p class="text-sm text-zinc-600 dark:text-zinc-400">Series: {{ card.condition }}</p>
+          <p class="text-sm text-zinc-600 dark:text-zinc-400">Year: {{ card.set }}</p>
+        </div>
       </div>
-    </div>
-    <div class="rounded-lg border bg-card text-card-foreground shadow-sm" data-v0-t="card">
-      <div class="p-4">
-        <img
-          src="/placeholder.svg"
-          alt="Card Image"
-          width="150"
-          height="200"
-          class="mb-4"
-          style="aspect-ratio: 150 / 200; object-fit: cover;"
-        />
-        <h3 class="font-semibold text-lg mb-2">Card Name</h3>
-        <p class="text-sm text-zinc-600 dark:text-zinc-400">Series: Series Name</p>
-        <p class="text-sm text-zinc-600 dark:text-zinc-400">Year: 2023</p>
-      </div>
-    </div>
-    <div class="rounded-lg border bg-card text-card-foreground shadow-sm" data-v0-t="card">
-      <div class="p-4">
-        <img
-          src="/placeholder.svg"
-          alt="Card Image"
-          width="150"
-          height="200"
-          class="mb-4"
-          style="aspect-ratio: 150 / 200; object-fit: cover;"
-        />
-        <h3 class="font-semibold text-lg mb-2">Card Name</h3>
-        <p class="text-sm text-zinc-600 dark:text-zinc-400">Series: Series Name</p>
-        <p class="text-sm text-zinc-600 dark:text-zinc-400">Year: 2023</p>
-      </div>
-    </div>
+    {% endfor %}
   </div>
+  

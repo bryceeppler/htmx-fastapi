@@ -15,6 +15,7 @@ DATABASE_URL = "postgresql://postgres:postgres@localhost/htmx_fastapi"
 # Global variable for the database connection
 db_connection = None
 
+
 @asynccontextmanager
 async def lifespan_db_connection():
     global db_connection
@@ -22,22 +23,22 @@ async def lifespan_db_connection():
     yield
     await db_connection.close()
 
+
 def get_db_connection():
     global db_connection
     if db_connection is None:
         db_connection = asyncpg.connect(DATABASE_URL)
     return db_connection
 
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    context = {
-        "request": request,
-        "message": "Hello World",
-        "title": "Home"
-    }
+    context = {"request": request, "message": "Hello World", "title": "Home"}
     return templates.TemplateResponse("home.html", context)
+
 
 @app.post("/search", response_class=HTMLResponse)
 async def search(request: Request, query: str = Form(...)):
@@ -51,7 +52,43 @@ async def search(request: Request, query: str = Form(...)):
 @app.post("/add", response_class=HTMLResponse)
 def post_add(request: Request, content: str = Form(...)):
     print(content)
-    context = {"request": request, "content": content}
+    cards = [
+        {
+            "name": "Dockside Extortionist",
+            "set": "Commander 2019",
+            "price": 109.99,
+            "foil": False,
+            "condition": "NM",
+            "image": "https://cdn11.bigcommerce.com/s-641uhzxs7j/products/249632/images/272731/571bc9eb-8d13-4008-86b5-2e348a326d58__63210.1587660227.220.290.jpg?c=1",
+            "link": "https://www.facetofacegames.com/dockside-extortionist-c19/",
+            "website": "facetoface"
+        },
+        {
+            "name": "Dockside Extortionist",
+            "image": "https://crystal-cdn1.crystalcommerce.com/photos/7908485/medium/mtg-cb.jpg",
+            "link": "https://www.gauntletgamesvictoria.ca/catalog/magic_singles-mystery_booster__the_list/dockside_extortionist__the_list/1646356",
+            "set": "Mystery Booster / The List",
+            "foil": False,
+            "condition": "NM",
+            "price": 70.0,
+            "website": "gauntlet"
+        },
+        {
+            "name": "Dockside Extortionist",
+            "set": "Commander 2019",
+            "condition": "NM",
+            "price": 83.41,
+            "link": "https://www.sequencecomics.ca/catalog/card_singles-magic_singles-commander_sets-commander_2019/dockside_extortionist/1027258",
+            "image": "https://crystal-cdn4.crystalcommerce.com/photos/6522815/medium/en_2UKUpFPSWV.png",
+            "foil": False,
+            "website": "sequencegaming"
+        },
+        # ... additional card entries ...
+    ]
+
+
+    context = {"request": request, "cards": cards + cards}
+    # context = {"request": request, "content": content}
     return templates.TemplateResponse("fragments/result.html", context)
 
 
