@@ -22,10 +22,10 @@ async def lifespan_db_connection():
     yield
     await db_connection.close()
 
-async def get_db_connection():
+def get_db_connection():
     global db_connection
     if db_connection is None:
-        db_connection = await asyncpg.connect(DATABASE_URL)
+        db_connection = asyncpg.connect(DATABASE_URL)
     return db_connection
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -39,14 +39,20 @@ def home(request: Request):
     }
     return templates.TemplateResponse("home.html", context)
 
+@app.post("/search", response_class=HTMLResponse)
+async def search(request: Request, query: str = Form(...)):
+    async with get_db_connection() as db:
+        query = "SELECT * FROM todo WHERE content LIKE $1"
+        rows = await db.fetch(query, f"%{query}%")
+    context = {"request": request, "rows": rows}
+    return templates.TemplateResponse("todo/list.html", context)
+
 
 @app.post("/add", response_class=HTMLResponse)
-async def post_add(request: Request, content: str = Form(...)):
-    async with get_db_connection() as db:
-        query = "INSERT INTO todo (content) VALUES ($1)"
-        await db.execute(query, content)
+def post_add(request: Request, content: str = Form(...)):
+    print(content)
     context = {"request": request, "content": content}
-    return templates.TemplateResponse("todo/item.html", context)
+    return templates.TemplateResponse("fragments/result.html", context)
 
 
 @app.get("/edit/{item_id}", response_class=HTMLResponse)
