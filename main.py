@@ -42,6 +42,44 @@ mongoClient = MongoClient(os.environ["MONGO_URI"])
 db = mongoClient["snapcaster"]
 shopifyInventoryDb = mongoClient["shopify-inventory"]
 
+
+def fetchScrapers(cardName):
+    # Arrange scrapers
+    gauntletScraper = GauntletScraper(cardName)
+    kanatacgScraper = KanatacgScraper(cardName)
+    fusionScraper = FusionScraper(cardName)
+    magicStrongholdScraper = MagicStrongholdScraper(cardName)
+    faceToFaceScraper = FaceToFaceScraper(cardName)
+    connectionGamesScraper = ConnectionGamesScraper(cardName)
+    topDeckHeroScraper = TopDeckHeroScraper(cardName)
+    jeux3DragonsScraper = Jeux3DragonsScraper(cardName)
+    sequenceScraper = SequenceScraper(cardName)
+    atlasScraper = AtlasScraper(cardName)
+    manaforceScraper = ManaforceScraper(cardName)
+    firstPlayerScraper = FirstPlayerScraper(cardName)
+    orchardCityScraper = OrchardCityScraper(cardName)
+    aetherVaultScraper = AetherVaultScraper(cardName)
+    theComicHunterScraper = TheComicHunterScraper(cardName)
+
+    # Map scrapers to an identifier keyword
+    return {
+        "gauntlet": gauntletScraper,
+        "kanatacg": kanatacgScraper,
+        "fusion": fusionScraper,
+        "magicstronghold": magicStrongholdScraper,
+        "facetoface": faceToFaceScraper,
+        "connectiongames": connectionGamesScraper,
+        "topdeckhero": topDeckHeroScraper,
+        "jeux3dragons": jeux3DragonsScraper,
+        "sequencegaming": sequenceScraper,
+        "atlas": atlasScraper,
+        "firstplayer": firstPlayerScraper,
+        "manaforce": manaforceScraper,
+        "orchardcity": orchardCityScraper,
+        "aethervault": aetherVaultScraper,
+        "thecomichunter": theComicHunterScraper,
+    }
+
 def searchShopifyInventory(search_term, db):
     mtgSinglesCollection = db['mtgSingles']
     # case insensitive and punctuation insensitive using full text search on index "title"
