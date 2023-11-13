@@ -60,7 +60,7 @@ def home(request: Request):
 
 
 @app.post("/search", response_class=HTMLResponse)
-def post_add(request: Request, content: str = Form(...)):
+def post_search(request: Request, content: str = Form(...)):
     results = searchShopifyInventory(content, shopifyInventoryDb)
     filteredResults = []
     for result in results:
@@ -88,20 +88,3 @@ def post_add(request: Request, content: str = Form(...)):
     context = {"request": request, "cards": results}
     # context = {"request": request, "content": content}
     return templates.TemplateResponse("fragments/result.html", context)
-
-
-@app.get("/edit/{item_id}", response_class=HTMLResponse)
-def get_edit(request: Request, item_id: int):
-    context = {"request": request, "content": "sample content"}
-    return templates.TemplateResponse("todo/form.html", context)
-
-
-@app.put("/edit/{item_id}", response_class=HTMLResponse)
-def put_edit(request: Request, item_id: int):
-    context = {"request": request, "content": "sample content"}
-    return templates.TemplateResponse("todo/item.html", context)
-
-
-@app.delete("/delete/{item_id}", response_class=Response)
-def delete(item_id: int):
-    pass
