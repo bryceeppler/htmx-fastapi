@@ -111,6 +111,30 @@ def searchShopifyInventory(search_term, db):
         item.pop('timestamp')
     return result
 
+def filterResults(results, content):
+    filteredResults = []
+
+    for result in results:
+        if content.lower() in result["name"].lower():
+            if (
+                "token" in result["name"].lower()
+                and "token" not in content.lower()
+                and "emblem" not in content.lower()
+            ):
+                continue
+            elif (
+                "emblem" in result["name"].lower()
+                and "emblem" not in content.lower()
+                and "token" not in content.lower()
+            ):
+                continue
+            else:
+                filteredResults.append(result)
+        else:
+            continue
+
+    return filteredResults
+
 def runScrapers(cardName):
     results = []
     results_lock = threading.Lock()  # Create a lock for thread-safe operations
@@ -183,29 +207,7 @@ def post_search(request: Request, content: str = Form(...)):
     scraper_results = runScrapers(content)
     results = shopify_results
     results.extend(scraper_results)
-    filteredResults = []
-    for result in results:
-        if content.lower() in result["name"].lower():
-            if (
-                "token" in result["name"].lower()
-                and "token" not in content.lower()
-                and "emblem" not in content.lower()
-            ):
-                continue
-            elif (
-                "emblem" in result["name"].lower()
-                and "emblem" not in content.lower()
-                and "token" not in content.lower()
-            ):
-                continue
-            else:
-                filteredResults.append(result)
-        else:
-            continue
-
-    results = filteredResults
-
-
+    results = filterResults(results, content)
+    
     context = {"request": request, "cards": results}
-    # context = {"request": request, "content": content}
     return templates.TemplateResponse("fragments/result.html", context)
