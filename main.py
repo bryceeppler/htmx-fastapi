@@ -2,26 +2,31 @@ from fastapi import FastAPI, Form
 from fastapi import Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-
+from pymongo import MongoClient
 from fastapi.templating import Jinja2Templates
 import asyncpg
 from contextlib import asynccontextmanager
+import os
+import dotenv
 
+dotenv.load_dotenv()
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-DATABASE_URL = "postgresql://postgres:postgres@localhost/htmx_fastapi"
-# Global variable for the database connection
-db_connection = None
-
-
+mongo_db_conn = None
+mongo_client = None
+shopify_inventory_db = None
 @asynccontextmanager
 async def lifespan_db_connection():
-    global db_connection
-    db_connection = await asyncpg.connect(DATABASE_URL)
+    global mongo_db_conn
+    global mongo_client
+    global shopify_inventory_db
+    mongo_client = MongoClient(os.environ["MONGO_URI"])
+    mongo_db_conn = mongo_client["snapcaster"]
+    shopify_inventory_db = mongo_client["shopify-inventory"]
     yield
-    await db_connection.close()
+    await mongo_db_conn.close()
 
 
 def get_db_connection():
@@ -33,6 +38,20 @@ def get_db_connection():
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+mongoClient = MongoClient(os.environ["MONGO_URI"])
+db = mongoClient["snapcaster"]
+shopifyInventoryDb = mongoClient["shopify-inventory"]
+
+def searchShopifyInventory(search_term, db):
+    mtgSinglesCollection = db['mtgSingles']
+    # case insensitive and punctuation insensitive using full text search on index "title"
+    result = list(mtgSinglesCollection.find({"$text": {"$search": search_term}}))
+    # drop the _id field from the result
+    for item in result:
+        item.pop('_id')
+        item.pop('timestamp')
+    return result
+
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
@@ -41,53 +60,32 @@ def home(request: Request):
 
 
 @app.post("/search", response_class=HTMLResponse)
-async def search(request: Request, query: str = Form(...)):
-    async with get_db_connection() as db:
-        query = "SELECT * FROM todo WHERE content LIKE $1"
-        rows = await db.fetch(query, f"%{query}%")
-    context = {"request": request, "rows": rows}
-    return templates.TemplateResponse("todo/list.html", context)
-
-
-@app.post("/add", response_class=HTMLResponse)
 def post_add(request: Request, content: str = Form(...)):
-    print(content)
-    cards = [
-        {
-            "name": "Dockside Extortionist",
-            "set": "Commander 2019",
-            "price": 109.99,
-            "foil": False,
-            "condition": "NM",
-            "image": "https://cdn11.bigcommerce.com/s-641uhzxs7j/products/249632/images/272731/571bc9eb-8d13-4008-86b5-2e348a326d58__63210.1587660227.220.290.jpg?c=1",
-            "link": "https://www.facetofacegames.com/dockside-extortionist-c19/",
-            "website": "facetoface"
-        },
-        {
-            "name": "Dockside Extortionist",
-            "image": "https://crystal-cdn1.crystalcommerce.com/photos/7908485/medium/mtg-cb.jpg",
-            "link": "https://www.gauntletgamesvictoria.ca/catalog/magic_singles-mystery_booster__the_list/dockside_extortionist__the_list/1646356",
-            "set": "Mystery Booster / The List",
-            "foil": False,
-            "condition": "NM",
-            "price": 70.0,
-            "website": "gauntlet"
-        },
-        {
-            "name": "Dockside Extortionist",
-            "set": "Commander 2019",
-            "condition": "NM",
-            "price": 83.41,
-            "link": "https://www.sequencecomics.ca/catalog/card_singles-magic_singles-commander_sets-commander_2019/dockside_extortionist/1027258",
-            "image": "https://crystal-cdn4.crystalcommerce.com/photos/6522815/medium/en_2UKUpFPSWV.png",
-            "foil": False,
-            "website": "sequencegaming"
-        },
-        # ... additional card entries ...
-    ]
+    results = searchShopifyInventory(content, shopifyInventoryDb)
+    filteredResults = []
+    for result in results:
+        if content.lower() in result["name"].lower():
+            if (
+                "token" in result["name"].lower()
+                and "token" not in content.lower()
+                and "emblem" not in content.lower()
+            ):
+                continue
+            elif (
+                "emblem" in result["name"].lower()
+                and "emblem" not in content.lower()
+                and "token" not in content.lower()
+            ):
+                continue
+            else:
+                filteredResults.append(result)
+        else:
+            continue
+
+    results = filteredResults
 
 
-    context = {"request": request, "cards": cards + cards}
+    context = {"request": request, "cards": results}
     # context = {"request": request, "content": content}
     return templates.TemplateResponse("fragments/result.html", context)
 
