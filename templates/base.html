@@ -12,11 +12,11 @@
     {% endblock %}
 
 </head>
-<body>
+<body class="dark:bg-zinc-900 dark:text-white p-4">
 {% block header %}
 {% include 'fragments/header.html' %}
 {% endblock %}
-<div class="p-4">
+<div class="min-h-full">
     {% block content %}
     {% endblock %}
 </div>

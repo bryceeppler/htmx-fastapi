@@ -9,10 +9,10 @@ A simple demo program to explore SSR with FastAPI and htmx.
 ## Startup
 ```
 # Start a watcher
-./tailwindcss -i input.css -o output.css --watch
+./tailwindcss -i input.css -o static/output.css --watch
 
 # Compile and minify your CSS for production
-./tailwindcss -i input.css -o output.css --minify
+./tailwindcss -i input.css -o static/output.css --minify
 ```
 ## TODO
 [ ] integrate database with sqlAlchemy or raw sql?
