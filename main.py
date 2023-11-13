@@ -5,12 +5,36 @@ from fastapi.staticfiles import StaticFiles
 from pymongo import MongoClient
 from fastapi.templating import Jinja2Templates
 import asyncpg
+import re 
+import threading
 from contextlib import asynccontextmanager
 import os
+import time
 import dotenv
+import random
+import concurrent.futures
+from utils.customExceptions import TooManyRequestsError
+from requests.exceptions import ProxyError, Timeout, SSLError, RetryError
+from scrapers.singles.AetherVaultScraper import AetherVaultScraper
+from scrapers.singles.AtlasScraper import AtlasScraper
+from scrapers.singles.ConnectionGamesScraper import ConnectionGamesScraper
+from scrapers.singles.FaceToFaceScraper import FaceToFaceScraper
+from scrapers.singles.FirstPlayerScraper import FirstPlayerScraper
+from scrapers.singles.FusionScraper import FusionScraper
+from scrapers.singles.GauntletScraper import GauntletScraper
+from scrapers.singles.Jeux3DragonsScraper import Jeux3DragonsScraper
+from scrapers.singles.KanatacgScraper import KanatacgScraper
+from scrapers.singles.MagicStrongholdScraper import MagicStrongholdScraper
+from scrapers.singles.ManaforceScraper import ManaforceScraper
+from scrapers.singles.OrchardCityScraper import OrchardCityScraper
+from scrapers.singles.SequenceScraper import SequenceScraper
+from scrapers.singles.TheComicHunterScraper import TheComicHunterScraper
+from scrapers.singles.TopDeckHeroScraper import TopDeckHeroScraper
+
 
 dotenv.load_dotenv()
-
+proxies_env = os.environ["PROXIES"]
+proxies_list = proxies_env.split(";")
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
@@ -27,13 +51,6 @@ async def lifespan_db_connection():
     shopify_inventory_db = mongo_client["shopify-inventory"]
     yield
     await mongo_db_conn.close()
-
-
-def get_db_connection():
-    global db_connection
-    if db_connection is None:
-        db_connection = asyncpg.connect(DATABASE_URL)
-    return db_connection
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -80,6 +97,10 @@ def fetchScrapers(cardName):
         "thecomichunter": theComicHunterScraper,
     }
 
+
+
+
+
 def searchShopifyInventory(search_term, db):
     mtgSinglesCollection = db['mtgSingles']
     # case insensitive and punctuation insensitive using full text search on index "title"
@@ -90,6 +111,65 @@ def searchShopifyInventory(search_term, db):
         item.pop('timestamp')
     return result
 
+def runScrapers(cardName):
+    results = []
+    results_lock = threading.Lock()  # Create a lock for thread-safe operations
+
+    def transform(scraper):
+        nonlocal results  # Reference the nonlocal results list
+        try:
+            temp_proxies = proxies_list.copy()
+            num_failed_proxies = 0
+            if scraper.usesProxies:
+                print(f"scraper {scraper.website} uses proxies")
+                while temp_proxies:  # try as long as there are proxies left
+                    proxy = random.choice(temp_proxies)
+                    try:
+                        scraper.scrape(proxy)
+                        scraperResults = scraper.getResults()
+                        for result in scraperResults:
+                            results.append(result)
+                        return
+                    except (
+                        ProxyError,
+                        Timeout,
+                        SSLError,
+                        RetryError,
+                        TooManyRequestsError,
+                    ):
+                        temp_proxies.remove(
+                            proxy
+                        )  # remove the failing proxy from the list
+                        num_failed_proxies += 1
+                        print(
+                            f"{num_failed_proxies} Proxy {proxy} failed for {scraper.website}"
+                        )
+
+                if not temp_proxies:
+                    print(f"*** All proxies failed for {scraper.website}")
+                    return
+                
+                for result in scraperResults:
+                    with results_lock:  # Acquire the lock before modifying the list
+                        results.append(result)
+            else:
+                # Non-proxy scraping
+                scraper.scrape()
+                scraperResults = scraper.getResults()
+                with results_lock:  # Acquire the lock before modifying the list
+                    for result in scraperResults:
+                        results.append(result)
+        except Exception as e:
+            print("Error in search_single while trying to scrape")
+            print(e)
+            return
+
+    scrapers = fetchScrapers(cardName)
+    scrapers = scrapers.values()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        list(executor.map(transform, scrapers))  # No need to store results from map
+
+    return results
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
@@ -99,7 +179,10 @@ def home(request: Request):
 
 @app.post("/search", response_class=HTMLResponse)
 def post_search(request: Request, content: str = Form(...)):
-    results = searchShopifyInventory(content, shopifyInventoryDb)
+    shopify_results = searchShopifyInventory(content, shopifyInventoryDb)
+    scraper_results = runScrapers(content)
+    results = shopify_results
+    results.extend(scraper_results)
     filteredResults = []
     for result in results:
         if content.lower() in result["name"].lower():
