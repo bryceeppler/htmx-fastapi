@@ -129,6 +129,8 @@ def filterResults(results, content):
             ):
                 continue
             else:
+                # round price to 2 decimal places
+                result['price'] = f"{result['price']:.2f}"
                 filteredResults.append(result)
         else:
             continue
